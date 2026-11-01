@@ -1,0 +1,21 @@
+{
+  "verified_at": "2026-11-01T14:33:04.397433+03:30",
+  "sample_origin": "existing local bot output; no fresh download performed",
+  "title": "Null Moon",
+  "artist": "Akira Yamaoka",
+  "album": "Silent Hill 2 (Original Soundtrack)",
+  "codec": "flac",
+  "sample_rate_hz": 44100,
+  "bit_depth": 16,
+  "channels": 2,
+  "duration_seconds": 170.306667,
+  "size_bytes": 12749258,
+  "sha256": "5428f14559988c484359d5e5cc251075d8703f61edefa6321019ef38a100a858",
+  "embedded_cover_present": true,
+  "full_decode_check": "passed",
+  "limitations": [
+    "One existing output file inspected; this is not a new end-to-end download test.",
+    "FLAC codec and decoding success do not establish equivalence to an Apple Music master.",
+    "No reference PCM comparison or universal catalog availability was verified."
+  ]
+}
