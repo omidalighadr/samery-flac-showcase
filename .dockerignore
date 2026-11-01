@@ -6,3 +6,14 @@
 !apple_music/scripts/*.py
 !apple_music/services/
 !apple_music/services/*.py
+
+
+# Defense in depth if the build allowlist is expanded later.
+**/private/
+**/creds/
+**/*[Cc]ookie*
+**/*.session*
+**/*.pem
+**/*.key
+**/*.sqlite*
+**/.env

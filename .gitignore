@@ -1,16 +1,36 @@
+# Local configuration; keep documented templates public.
 .env
-.venv/
-__pycache__/
-*.pyc
+.env.*
+!.env.example
+!.env.sample
+private/
+creds/
+credentials*.json
+service-account*.json
+*[Cc]ookie*
+*.session
+*.session-*
+*.pem
+*.key
+
+# Runtime state and generated media.
+data/
+downloads/
 *.sqlite*
 *.db
+*.db-*
 *.log
-cookies*
-creds/
-downloads/
 *.flac
 *.m4a
 *.wav
+*.mp3
+*.mp4
+*.mkv
 
+# Python environments and build/cache artifacts.
+.venv/
+__pycache__/
+*.pyc
 .pytest_cache/
 *.egg-info/
+.DS_Store

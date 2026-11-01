@@ -1,57 +1,74 @@
 # Samery · Apple Music Telegram Bot
 
-**Apple Music links → FLAC files, artwork and track metadata in Telegram.**
+[![Checks](https://github.com/omidalighadr/samery-flac-showcase/actions/workflows/toolkit.yml/badge.svg)](https://github.com/omidalighadr/samery-flac-showcase/actions/workflows/toolkit.yml)
 
-A focused Python project by **Omid Alighadr**. This repository brings the download integration, a standalone Telegram front end, Docker configuration and tests together in one place.
+**Apple Music links → FLAC, artwork and track metadata in Telegram.**
 
-[Get started](docs/SETUP.md) · [Browse the bot](apple_music/bot.py) · [Download integration](apple_music/README.md) · [Sample validation](validation/sample-report.json)
+A focused Python project by **Omid Alighadr**: a Telegram front end around an extracted download integration, with audio verification, Docker packaging and automated tests.
 
-## What it does
+[Setup](docs/SETUP.md) · [Architecture](docs/ARCHITECTURE.md) · [Bot source](apple_music/bot.py) · [Measured sample](validation/sample-report.json) · [Security](SECURITY.md)
 
-- Accepts Apple Music track, album and playlist links from explicitly allowed users.
-- Requests the best available ALAC source and converts it to FLAC without changing the sample rate or bit depth; no AAC fallback for FLAC.
-- Sends a document with embedded artwork, a thumbnail and a readable track caption.
-- Processes one request at a time, with a bounded in-memory queue, status and cancellation.
-- Acknowledges working-file deletion only after a matching Telegram receipt or a verified retained copy.
-- Keeps files at or above 50 MiB on the bot host. Unconfirmed deliveries stay on disk and are not blindly retried.
+## Engineering highlights
 
-## Start here
+- **Lossless conversion:** requests the best available ALAC source, preserves bit depth, sample rate and channels, and compares decoded PCM hashes after conversion to FLAC.
+- **Delivery coordination:** checks the Telegram attachment size before acknowledging a track to the worker. Unconfirmed outputs remain on disk.
+- **Controlled concurrency:** allowlisted users, one active worker, a bounded in-memory queue and cancellation.
+- **Complete track presentation:** embedded artwork, thumbnail, clean filename and track metadata.
+- **Deployment checks:** isolated audio/protocol tests, Python compatibility checks and Docker build/import checks in CI.
 
-Read the [setup guide](docs/SETUP.md) before running. You need your own Telegram bot token, allowlisted user IDs, active Apple Music account, private cookie file and independently configured compatible Wrapper service.
+## Download pipeline
+
+```mermaid
+flowchart LR
+    U[Allowed Telegram user] --> Q[Validate link and queue]
+    Q --> W[Worker subprocess]
+    W --> S[Account and external service]
+    S --> A[ALAC source]
+    A --> F[FLAC and PCM verification]
+    F --> D{Delivery decision}
+    D -->|Below 50 MiB| T[Telegram document receipt]
+    D -->|50 MiB or larger| R[Verified retained copy]
+    T --> K[Acknowledge worker]
+    R --> K
+    K --> C[Delete working file]
+```
+
+[Component boundaries, failure handling and retention rules →](docs/ARCHITECTURE.md)
+
+## Run your own instance
+
+Requirements: your own Telegram bot token, allowed user IDs, active Apple Music account, private cookie file and compatible external Wrapper service.
 
 ```sh
 cp .env.example .env
-# Fill in your own private settings and place your cookie file as described in the guide.
+# Configure your own account and external service; see docs/SETUP.md.
 docker compose up --build -d
 ```
 
-The repository does **not** include a ready-to-use account, Wrapper daemon, service image or credentials. Public source does not make those dependencies optional.
+**Deployment status:** the public image has build/import checks. A clean-install account-to-Telegram download has not been validated; the private deployment uses an additional patched dependency wheel that is not distributed here. See [setup and deployment limits](docs/SETUP.md).
 
-## Output example
+## Output evidence
 
-![Illustrated sample output, based on inspected metadata](assets/sample-output.svg)
+![Illustration of the measured sample's Telegram presentation](assets/sample-output.svg)
 
-The illustration represents a previously saved **Null Moon — Akira Yamaoka** file: FLAC, 16-bit / 44.1 kHz, stereo, 170.307 seconds, with embedded artwork. The existing file passed a complete strict decode on **1 November 2026**. It is an illustration, not a Telegram screenshot or a new end-to-end download test. [Validation report](validation/sample-report.json).
+This is an **illustration**, not a Telegram screenshot. It represents an inspected **Null Moon — Akira Yamaoka** file: FLAC, 16-bit / 44.1 kHz, stereo, **170.307 seconds**, with embedded artwork. That saved file passed a strict full decode on **1 November 2026**. [Measurement report →](validation/sample-report.json)
 
-## Project map
+## Source and tests
 
-| Location | Purpose |
+| Location | Responsibility |
 | --- | --- |
-| [`apple_music/bot.py`](apple_music/bot.py) | Standalone Telegram app and safe delivery coordination |
-| [`apple_music/scripts/`](apple_music/scripts/) | Original Apple Music worker, local adapter, FLAC conversion and metadata |
-| [`docs/SETUP.md`](docs/SETUP.md) | Python and Docker setup, configuration and limitations |
-| [`apple_music/tests/`](apple_music/tests/) | Integration component and bot coordination tests |
-| [`toolkit/`](toolkit/) | Optional local audio comparison and standalone file-sending utilities |
-| [`validation/`](validation/) | Measured output evidence |
+| [`apple_music/bot.py`](apple_music/bot.py) | Authorization, queue, subprocess coordination and delivery |
+| [`apple_music/scripts/`](apple_music/scripts/) | Account integration, local protocol adapter, audio conversion and metadata |
+| [`apple_music/tests/`](apple_music/tests/) | Synthetic audio tests and isolated bot/protocol fixtures |
+| [`toolkit/`](toolkit/) | Standalone audio comparison and file-sending utilities |
+| [`tests/test_private_files.py`](tests/test_private_files.py) | Ignore-rule regression tests and tracked private-file checks |
 
-## Validation and scope
+The integration modules were extracted from the private Samery application. The standalone public front end is separate from the full personal assistant. Tests use generated audio, mocked services or loopback fixtures; CI does not log in to an account or establish live service availability.
 
-The original integration modules were extracted from the private application; the standalone Telegram front end was added for this public project. This is not the source of the complete personal Samery assistant.
+Queue state is in memory. Files at or above 50 MiB remain on the host; unconfirmed uploads are not automatically replayed. [Full operating limits →](docs/SETUP.md#deployment-limits)
 
-Audio tests use generated signals; HTTP, worker and Telegram interactions are mocked or use loopback fixtures. They cover PCM equality, artwork, format checks, rejected inputs, uncertain delivery, acknowledgement order and retention. See [Actions](https://github.com/omidalighadr/samery-flac-showcase/actions) for current hosted results. A successful test run or image build does not establish live account or Wrapper availability.
+## Credits and use
 
-The private deployment uses a patched dependency wheel which is not distributed. Compatibility of a clean public dependency installation must be assessed separately from the existing private bot. Queue state is not persistent across restart; this reference app does not implement durable upload recovery or automatic replay.
+Built around [GAMDL](https://github.com/glomatico/gamdl), FFmpeg and python-telegram-bot; see [integration attribution](apple_music/README.md#dependencies-and-attribution). Use only accounts and media you are authorized to use.
 
-No tokens, cookies, account sessions, private databases, personal configuration or complete recordings are included. Upstream components are credited in the [integration guide](apple_music/README.md). Use your own account and only process and share media you are authorized to use.
-
-No open-source license has been selected; public visibility does not grant an additional reuse license.
+No additional reuse license has been selected. See [GitHub's licensing guidance](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/licensing-a-repository).
