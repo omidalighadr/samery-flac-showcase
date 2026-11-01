@@ -1,0 +1,13 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+*.sqlite*
+*.db
+*.log
+cookies*
+creds/
+downloads/
+*.flac
+*.m4a
+*.wav

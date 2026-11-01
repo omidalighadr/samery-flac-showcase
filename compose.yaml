@@ -1,0 +1,7 @@
+services:
+  send:
+    build: .
+    env_file: .env
+    volumes:
+      - ./downloads:/media:ro
+    command: ["/media/sample.flac"]
