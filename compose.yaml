@@ -1,7 +1,16 @@
 services:
-  send:
+  bot:
     build: .
     env_file: .env
+    environment:
+      APPLE_MUSIC_COOKIES: /run/secrets/apple-cookies.txt
+      DATA_DIR: /app/data
     volumes:
-      - ./downloads:/media:ro
-    command: ["/media/sample.flac"]
+      - samery-data:/app/data
+      - ./private/apple-cookies.txt:/run/secrets/apple-cookies.txt:ro
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: unless-stopped
+    stop_grace_period: 20s
+volumes:
+  samery-data:

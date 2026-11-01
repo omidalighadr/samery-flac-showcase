@@ -20,7 +20,7 @@ Accepts local lossless integer ALAC, FLAC and PCM with 16, 24 or 32 bits. Compar
 
 ## Send an existing FLAC to Telegram
 
-Create your bot through BotFather, start a chat with it, and configure your own private environment. Copy `.env.example` to `.env`, fill in the values, then run:
+Create your bot through BotFather, start a chat with it, and privately set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in your environment. This optional tool uses `TELEGRAM_CHAT_ID`, while the main bot uses `ALLOWED_USER_IDS`. Then run:
 
 ```sh
 set -a
@@ -33,15 +33,9 @@ The command probes and decodes the file before a single `sendDocument` request t
 
 Files must be smaller than 50 MiB. Larger files stay local without an upload attempt. No file is ever deleted. There is no automatic retry: after an uncertain network response, check the chat before trying again. Upload transport tests use mocks and do not establish live Telegram connectivity. Use only files you are entitled to share.
 
-## Docker
+## Deployment
 
-Place a readable `sample.flac` in `downloads/`, configure `.env`, then:
-
-```sh
-docker compose run --rm send
-```
-
-This is a one-shot command, not an always-on bot. The media mount is read-only. Docker configuration is supplied as an example; it has not been executed in the local validation session.
+The repository root Docker configuration runs the standalone Apple Music Telegram bot. For these optional one-shot utilities, use the Python commands above. See the [main setup guide](../docs/SETUP.md) for bot deployment.
 
 ## Tests
 

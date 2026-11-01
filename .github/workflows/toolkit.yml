@@ -30,3 +30,16 @@ jobs:
         working-directory: apple_music
       - run: python -m pytest tests -q
         working-directory: apple_music
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t samery-apple:test .
+      - run: >-
+          docker run --rm --network none --entrypoint python samery-apple:test
+          -c "import sys; sys.path.insert(0, '/app/apple_music'); import bot;
+          from gamdl.api import AppleMusicApi;
+          from gamdl.api.wrapper import WrapperApi;
+          from gamdl.interface import AppleMusicBaseInterface;
+          from gamdl.downloader import AppleMusicBaseDownloader;
+          print('Bot and external API imports passed; no account used.')"

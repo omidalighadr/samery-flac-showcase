@@ -39,7 +39,7 @@ From this directory, inspect the CLI without loading credentials:
 python3 scripts/apple_worker.py --help
 ```
 
-The worker is a subprocess component, not a complete Telegram bot. It emits JSON-line events on stdout (`ready`, `stage`, `track`, `resume`, `track_error`, `done`, `error`). Third-party logs are suppressed. A `track` event points to a file in the caller-provided output directory.
+The worker is a subprocess component. The standalone [`bot.py`](bot.py) now supplies its Telegram front end; see the [setup guide](../docs/SETUP.md). It emits JSON-line events on stdout (`ready`, `stage`, `track`, `resume`, `track_error`, `done`, `error`). Third-party logs are suppressed. A `track` event points to a file in the caller-provided output directory.
 
 **Acknowledgement matters:** after emitting a track, the worker waits for a line on stdin. Any line acknowledges the track and permits deletion of that output and its lyrics. The parent must only acknowledge after successful delivery or a verified durable copy. EOF returns without acknowledging the current file. Use an isolated scratch output directory, not your existing music library.
 
@@ -47,7 +47,7 @@ The `flac` selection requests ALAC only and does not fall back to AAC. Conversio
 
 ## What this snapshot excludes
 
-The private Telegram application's handlers, token, authorization database, channel settings, request queue and deployment are not included. This is the download integration component, not a copy of the complete personal assistant. The separate [`toolkit/`](../toolkit/) directory demonstrates local file delivery.
+The private application's handlers, token, authorization database, channel settings and deployment are not included. A new standalone Telegram front end and Docker configuration are included for this public project; they do not reproduce the complete personal assistant. The separate [`toolkit/`](../toolkit/) directory contains optional local audio utilities.
 
 ## Tests
 
