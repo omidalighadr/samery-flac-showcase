@@ -1,0 +1,40 @@
+{
+  "snapshot_date": "2026-11-01",
+  "files": [
+    {
+      "path": "scripts/apple_worker.py",
+      "sha256": "4319a9f5e3a56cd1b2438045979d15f87f74223372751266eec68bbecfb7472d",
+      "change": "Unmodified application source snapshot"
+    },
+    {
+      "path": "scripts/apple_audio.py",
+      "sha256": "800d7f29a2d2cfaa4aaa00f024bacaa18810ae0d2a77df33a8a3b622e587b185",
+      "change": "Unmodified application source snapshot"
+    },
+    {
+      "path": "scripts/apple_session.py",
+      "sha256": "dee34b0176745f4ef30fb2c1e337a0c1160007b4b9ca470cb18d84800fcb2864",
+      "change": "Unmodified application source snapshot"
+    },
+    {
+      "path": "scripts/apple_legacy.py",
+      "sha256": "5ef855677ecf8638bf685fbe53ec3bb2460f1612dea18b642f60f6112cfa72d7",
+      "change": "Unmodified application source snapshot"
+    },
+    {
+      "path": "scripts/apple_resume_ids.py",
+      "sha256": "d8f6f8a53f2885e237fdb29d0a32b713be973b0d9db3fbe0b2dfd0dc04692640",
+      "change": "Unmodified application source snapshot"
+    },
+    {
+      "path": "scripts/music_metadata.py",
+      "sha256": "d5d2cfb95586a9a5e14f5f415b5605f4b8e5f8ed6c3f26c5718948b08e0017a6",
+      "change": "Unmodified application source snapshot"
+    }
+  ],
+  "notes": [
+    "Only original application modules listed here were copied.",
+    "No installed third-party package, binary, account session or private configuration was copied.",
+    "services/ordered_albums.py contains the pure ordering helpers; the private bot command is excluded."
+  ]
+}

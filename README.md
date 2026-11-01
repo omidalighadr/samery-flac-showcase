@@ -4,9 +4,9 @@
 
 A private Telegram bot built by **Omid Alighadr**, focused on receiving Apple Music links and delivering FLAC audio files with track metadata and cover artwork.
 
-**Product showcase with public supporting utilities. The complete bot and Apple Music integration remain private.**
+**Product showcase with public Apple Music integration source and supporting audio utilities. The complete personal Telegram bot remains private.**
 
-[Browse the audio toolkit source and usage guide](toolkit/README.md).
+[Apple Music integration source](apple_music/README.md) · [Audio toolkit source](toolkit/README.md).
 
 ## The experience
 
@@ -44,13 +44,13 @@ The check was performed on an existing local output on **1 November 2026**. It w
 
 This page demonstrates a private project and one measured output. It does not claim universal catalog availability, guaranteed uptime, or the same resolution for every recording. Availability and delivery depend on the account, region and Telegram transport.
 
-No complete bot source, Apple Music integration, credentials, cookies, databases, private logs or complete music files are included here.
+No complete personal bot source, credentials, cookies, databases, private logs or complete music files are included here.
 
 Built with **Python · Telegram · FFmpeg · FFprobe**.
 
 ## Public engineering toolkit
 
-The [`toolkit/`](toolkit/) directory contains source for local lossless audio verification and a minimal FLAC-to-Telegram delivery command. It has no downloader or decryption implementation and does not provide the complete product experience.
+The [`toolkit/`](toolkit/) directory contains source for local lossless audio verification and a minimal FLAC-to-Telegram delivery command. This toolkit directory is separate from the Apple Music integration and does not provide the complete product experience.
 
 - Compare local ALAC/FLAC/PCM recordings using decoded PCM hashes and format properties.
 - Validate an existing FLAC before sending it as a Telegram document, without re-encoding or deleting the original.
@@ -61,3 +61,9 @@ The [`toolkit/`](toolkit/) directory contains source for local lossless audio ve
 **Local validation:** 17 tests passed on 1 November 2026. Synthetic audio tests cover 16/24-bit mono/stereo at 44.1/48 kHz. Delivery tests are mocked; Docker and live Telegram upload were not exercised in this validation. The hosted workflow's status is available in Actions.
 
 No open-source license has been selected for this repository. Public visibility is not an additional reuse license.
+
+## Apple Music integration source
+
+The [`apple_music/`](apple_music/) directory publishes the original worker and supporting application modules: GAMDL integration, account session bootstrap, local Wrapper protocol adapter, completed-track snapshots, lossless conversion and metadata handling.
+
+This is an extracted component, not the complete Telegram assistant. It requires external dependencies and an independently configured service; no account state or service binaries are bundled. See the integration guide for attribution, the acknowledgement/deletion contract, test scope and clean-install limitations.
