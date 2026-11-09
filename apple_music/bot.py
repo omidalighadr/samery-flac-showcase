@@ -4,6 +4,8 @@ from __future__ import annotations
 import asyncio
 from contextlib import suppress
 from dataclasses import dataclass
+from datetime import datetime, timezone
+import hashlib
 import json
 import logging
 import os
@@ -23,6 +25,46 @@ from scripts.music_metadata import caption, filename, metadata, thumbnail
 
 ROOT = Path(__file__).resolve().parent
 UPLOAD_LIMIT = 50 * 1024 * 1024
+LOG = logging.getLogger("samery.public_bot")
+
+
+def log_event(event: str, **fields: str | int) -> None:
+    # Callers pass only fixed event labels, generated IDs, class names and counters.
+    timestamp = datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+    LOG.info(json.dumps({"time": timestamp, "event": event, **fields}, separators=(",", ":")))
+
+
+def configure_logging() -> None:
+    # Avoid the fallback handler for third-party messages containing request URLs.
+    logging.getLogger().addHandler(logging.NullHandler())
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    LOG.addHandler(handler)
+    LOG.setLevel(logging.INFO)
+    LOG.propagate = False
+
+
+def file_digest(path: Path) -> bytes:
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").digest()
+
+
+async def drain_worker_stderr(stream: asyncio.StreamReader) -> int:
+    """Count diagnostics without retaining or emitting potentially sensitive bytes."""
+    size = 0
+    while chunk := await stream.read(8192):
+        size += len(chunk)
+    return size
+
+
+def leftover_jobs(data: Path) -> int:
+    jobs = data / "jobs"
+    if not jobs.is_dir():
+        return 0
+    return sum(
+        p.is_dir() and not p.is_symlink() and p.name.startswith("request-")
+        for p in jobs.iterdir()
+    )
 
 
 def apple_url(text):
@@ -44,6 +86,10 @@ def apple_url(text):
         return ""
 
 
+class ConfigurationError(ValueError):
+    """A fixed configuration diagnostic safe to include in logs."""
+
+
 @dataclass(frozen=True)
 class Settings:
     token: str
@@ -54,6 +100,9 @@ class Settings:
     backend: str = "v2"
     decrypt_host: str = "127.0.0.1"
     decrypt_port: int = 10020
+    max_jobs: int = 10
+    worker_line_timeout: int = 600
+    worker_exit_timeout: int = 10
 
     @classmethod
     def from_env(cls):
@@ -61,14 +110,14 @@ class Settings:
         allowed = frozenset(int(x.strip()) for x in os.environ.get("ALLOWED_USER_IDS", "").split(",") if x.strip())
         cookie_value = os.environ.get("APPLE_MUSIC_COOKIES", "").strip()
         if not re.fullmatch(r"\d+:[A-Za-z0-9_-]+", token) or not allowed or min(allowed) <= 0 or not cookie_value:
-            raise ValueError("Missing private configuration")
+            raise ConfigurationError("missing_private_configuration")
         cookies = Path(cookie_value).expanduser().resolve()
         if not cookies.is_file():
-            raise ValueError("Cookies file is missing")
+            raise ConfigurationError("cookies_file_missing")
         wrapper = os.environ.get("APPLE_MUSIC_WRAPPER_URL", "").strip()
         backend = os.environ.get("APPLE_MUSIC_WRAPPER_BACKEND", "v2")
         if not wrapper or backend not in ("v2", "legacy-local"):
-            raise ValueError("External music service is not configured")
+            raise ConfigurationError("wrapper_not_configured")
         data = Path(os.environ.get("DATA_DIR", "./data")).expanduser().resolve()
         data.mkdir(parents=True, exist_ok=True, mode=0o700)
         return cls(token, allowed, cookies, data, wrapper, backend,
@@ -118,27 +167,34 @@ async def stop_process(proc):
             await proc.wait()
 
 
-async def run_job(settings, bot, chat_id, url, status):
+async def run_job(settings, bot, chat_id, url, status, *, worker_script: Path | None = None):
     jobs = settings.data / "jobs"
     jobs.mkdir(exist_ok=True)
     directory = Path(tempfile.mkdtemp(prefix="request-", dir=jobs))
-    argv = [sys.executable, "-B", str(ROOT / "scripts/apple_worker.py"),
+    request_id = directory.name
+    worker_script = worker_script or ROOT / "scripts/apple_worker.py"
+    argv = [sys.executable, "-B", str(worker_script),
             "--cookies", str(settings.cookies), "--url", url, "--output", str(directory),
             "--codec", "flac", "--limit", "50", "--wrapper", settings.wrapper,
             "--wrapper-backend", settings.backend, "--decrypt-host", settings.decrypt_host,
             "--decrypt-port", str(settings.decrypt_port)]
     proc = None
+    stderr_task = None
+    phase = "worker_start"
+    log_event("request_started", request_id=request_id)
     sent = kept = errors = 0
     completed = False
     last_status = 0.0
     try:
         proc = await asyncio.create_subprocess_exec(
             *argv, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.DEVNULL, start_new_session=True,
+            stderr=asyncio.subprocess.PIPE, start_new_session=True,
             env={key: os.environ[key] for key in ("PATH", "LANG", "HOME", "TMPDIR", "SSL_CERT_FILE") if key in os.environ},
         )
+        stderr_task = asyncio.create_task(drain_worker_stderr(proc.stderr))
         while True:
-            line = await asyncio.wait_for(proc.stdout.readline(), 600)
+            phase = "worker_output"
+            line = await asyncio.wait_for(proc.stdout.readline(), settings.worker_line_timeout)
             if not line:
                 break
             event = json.loads(line)
@@ -148,6 +204,7 @@ async def run_job(settings, bot, chat_id, url, status):
                     await status.edit_text("Apple Music · " + str(event.get("stage", "working"))[:40])
                 last_status = time.monotonic()
             elif kind == "track":
+                phase = "delivery"
                 path = managed_file(event["path"], directory)
                 if path.suffix.lower() != ".flac":
                     raise ValueError("Non-FLAC output rejected")
@@ -158,11 +215,9 @@ async def run_job(settings, bot, chat_id, url, status):
                     destination.parent.mkdir(parents=True, exist_ok=True)
                     await asyncio.to_thread(shutil.copyfile, path, destination)
                     # Verify durable bytes before acknowledging deletion of the working copy.
-                    import hashlib
-                    def digest(file):
-                        with file.open("rb") as stream:
-                            return hashlib.file_digest(stream, "sha256").digest()
-                    if await asyncio.to_thread(digest, path) != await asyncio.to_thread(digest, destination):
+                    source_hash = await asyncio.to_thread(file_digest, path)
+                    retained_hash = await asyncio.to_thread(file_digest, destination)
+                    if source_hash != retained_hash:
                         raise ValueError("Retained copy verification failed")
                     await bot.send_message(chat_id, caption(event) + "\n\nAbove the upload limit. Original kept on the bot host under data/retained/.")
                     kept += 1
@@ -177,17 +232,32 @@ async def run_job(settings, bot, chat_id, url, status):
                 raise RuntimeError("External service reported an error")
             elif kind == "done":
                 completed = True
-        code = await asyncio.wait_for(proc.wait(), 10)
+        phase = "worker_exit"
+        code = await asyncio.wait_for(proc.wait(), settings.worker_exit_timeout)
         if code or not completed:
             raise RuntimeError("Worker did not finish")
         with suppress(Exception):
             await status.edit_text(f"Finished · {sent} sent · {kept} kept above the limit · {errors} failed")
         if not errors:
-            with suppress(OSError):
+            try:
                 shutil.rmtree(directory)
+            except OSError:
+                log_event("job_cleanup_failed", request_id=request_id)
+        log_event("request_finished", request_id=request_id, sent=sent, kept=kept, failed=errors)
+    except asyncio.CancelledError:
+        log_event("request_cancelled", request_id=request_id, phase=phase)
+        raise
+    except Exception as error:
+        log_event("request_failed", request_id=request_id, phase=phase, error_type=type(error).__name__)
+        raise
     finally:
         if proc:
             await stop_process(proc)
+        if stderr_task:
+            with suppress(TimeoutError):
+                diagnostic_bytes = await asyncio.wait_for(stderr_task, 5)
+                if diagnostic_bytes:
+                    log_event("worker_diagnostics", request_id=request_id, stderr_bytes=diagnostic_bytes)
         # Failure/cancellation leaves unconfirmed outputs in data/jobs/ for inspection.
 
 
@@ -233,7 +303,7 @@ def build_application(settings):
         if not url:
             await update.effective_message.reply_text("Send one music.apple.com track, album or playlist link.")
             return
-        if uid in tasks or len(tasks) >= 10:
+        if uid in tasks or len(tasks) >= settings.max_jobs:
             await update.effective_message.reply_text("A request is already active or the queue is full. Use /status or /cancel.")
             return
         progress = await update.effective_message.reply_text("Queued · Best available lossless source")
@@ -257,10 +327,13 @@ def build_application(settings):
             task.cancel()
         await asyncio.gather(*pending, return_exceptions=True)
 
-    async def error(update, context):
-        # Never echo exception text, request URLs or account responses.
-        return None
+    async def startup(application):
+        log_event("startup", leftover_jobs=leftover_jobs(settings.data))
 
+    async def error(update, context):
+        log_event("telegram_error", error_type=type(context.error).__name__)
+
+    app.post_init = startup
     app.post_stop = shutdown
     app.add_handler(CommandHandler(["start", "help"], start))
     app.add_handler(CommandHandler("status", status))
@@ -272,11 +345,15 @@ def build_application(settings):
 
 
 def main():
-    logging.disable(logging.CRITICAL)
+    configure_logging()
     try:
         settings = Settings.from_env()
         build_application(settings).run_polling(bootstrap_retries=0)
-    except Exception:
+    except Exception as error:
+        fields = {"error_type": type(error).__name__}
+        if isinstance(error, ConfigurationError):
+            fields["reason"] = str(error)
+        log_event("startup_failed", **fields)
         print("Startup failed. Check private settings, installed dependencies and network access.", file=sys.stderr)
         return 1
     return 0

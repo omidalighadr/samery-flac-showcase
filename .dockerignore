@@ -1,6 +1,7 @@
 *
 !apple_music/
 !apple_music/bot.py
+!apple_music/demo.py
 !apple_music/requirements.txt
 !apple_music/scripts/
 !apple_music/scripts/*.py

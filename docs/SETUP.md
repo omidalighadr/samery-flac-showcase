@@ -79,3 +79,20 @@ Tests do not require real tokens, cookies or downloads. The optional loopback te
 ## Deployment limits
 
 The public runtime targets GAMDL 3.9.1. The private application's patched dependency wheel is excluded. A clean install, even if it builds and imports successfully, may behave differently during actual account/media operations. No test here guarantees catalog availability, source resolution, external service readiness or uptime. The complete private assistant's channel publishing, databases and unrelated features are excluded.
+
+
+## Operational logs and retained work
+
+The standalone bot emits one JSON log record per lifecycle event to standard error.
+Follow a job by its generated `request_id` across `request_started`, `request_finished`,
+`request_failed`, or `request_cancelled`. Failures include a phase and exception type.
+Raw exception messages, URLs, account data, and worker standard error are excluded.
+The worker stream is drained and reported as a byte count when present.
+
+After startup, `leftover_jobs` counts managed request folders left by earlier runs.
+Inspect those folders before removing files. Incomplete and unconfirmed work is retained
+for manual recovery. The running queue is in memory and is not replayed after restart.
+
+The file-retention threshold is 50 MiB (52,428,800 bytes). At or above that threshold,
+a verified copy is retained locally. This application threshold does not guarantee that
+the hosted Telegram endpoint accepts every smaller file.

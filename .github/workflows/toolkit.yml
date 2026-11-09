@@ -44,6 +44,8 @@ jobs:
           from gamdl.downloader import AppleMusicBaseDownloader;
           print('Bot and external API imports passed; no account used.')"
 
+      - run: docker run --rm --network none --entrypoint python samery-apple:test -B apple_music/demo.py
+
   repository-safety:
     runs-on: ubuntu-latest
     steps:
