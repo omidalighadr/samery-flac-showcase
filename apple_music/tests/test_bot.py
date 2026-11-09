@@ -69,7 +69,8 @@ def test_delivery_checks_returned_size(tmp_path, correct):
 
 
 @pytest.mark.parametrize("mode", ["sent", "uncertain", "large"])
-def test_worker_acknowledged_only_after_delivery_or_verified_copy(tmp_path, mode):
+def test_worker_acknowledged_only_after_delivery_or_verified_copy(tmp_path, mode, caplog):
+    caplog.set_level("INFO", logger=public_bot.LOG.name)
     settings = public_bot.Settings("synthetic", frozenset({123}), tmp_path / "cookies.txt", tmp_path, "http://127.0.0.1:10020")
     stdin = MagicMock()
     stdin.drain = AsyncMock()
@@ -85,9 +86,12 @@ def test_worker_acknowledged_only_after_delivery_or_verified_copy(tmp_path, mode
         reader.feed_data(b'{"event":"done"}\n')
         reader.feed_eof()
         assert "TELEGRAM_BOT_TOKEN" not in kwargs["env"]
-        return NS(stdout=reader, stdin=stdin, returncode=0, wait=AsyncMock(return_value=0))
+        stderr = asyncio.StreamReader()
+        stderr.feed_data(b"private diagnostic that must stay out of logs")
+        stderr.feed_eof()
+        return NS(stdout=reader, stdin=stdin, stderr=stderr, returncode=0, wait=AsyncMock(return_value=0))
 
-    send = AsyncMock(side_effect=TimeoutError() if mode == "uncertain" else None)
+    send = AsyncMock(side_effect=TimeoutError("signed URL must stay private") if mode == "uncertain" else None)
     with patch.object(public_bot.asyncio, "create_subprocess_exec", side_effect=factory), patch.object(public_bot, "stop_process", new_callable=AsyncMock), patch.object(public_bot, "deliver", send), patch.object(public_bot, "UPLOAD_LIMIT", 1 if mode == "large" else 50*1024*1024):
         coroutine = public_bot.run_job(settings, NS(send_message=AsyncMock()), 123, "https://music.apple.com/us/song/a/123", NS(edit_text=AsyncMock()))
         if mode == "uncertain":
@@ -103,3 +107,22 @@ def test_worker_acknowledged_only_after_delivery_or_verified_copy(tmp_path, mode
             send.assert_not_awaited()
             retained = list((tmp_path / "retained").rglob("*.flac"))
             assert len(retained) == 1 and retained[0].read_bytes() == b"synthetic bytes"
+
+
+    events = [json.loads(record.message) for record in caplog.records if record.name == public_bot.LOG.name]
+    assert "private diagnostic" not in caplog.text
+    assert "signed URL" not in caplog.text
+    assert {event["request_id"] for event in events} == {created[0].parent.name}
+    assert any(event["event"] == "worker_diagnostics" for event in events)
+    if mode == "uncertain":
+        assert any(event["event"] == "request_failed" and event["phase"] == "delivery" for event in events)
+
+
+def test_startup_inventory_counts_only_managed_directories(tmp_path):
+    jobs = tmp_path / "jobs"
+    jobs.mkdir()
+    (jobs / "request-interrupted").mkdir()
+    (jobs / "unrelated").mkdir()
+    (jobs / "request-not-a-directory").write_text("placeholder")
+    (jobs / "request-link").symlink_to(jobs / "unrelated", target_is_directory=True)
+    assert public_bot.leftover_jobs(tmp_path) == 1

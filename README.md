@@ -8,6 +8,17 @@ A focused Python project by **Omid Alighadr**: a Telegram front end around an ex
 
 [Setup](docs/SETUP.md) · [Architecture](docs/ARCHITECTURE.md) · [Bot source](apple_music/bot.py) · [Measured sample](validation/sample-report.json) · [Security](SECURITY.md)
 
+## Run the offline demo
+
+With Python 3.12 and FFmpeg/FFprobe installed:
+
+```sh
+python -m pip install -r apple_music/requirements-test.txt
+python apple_music/demo.py
+```
+
+The demo generates a tone, converts ALAC to FLAC with PCM verification, then runs the bot's job loop with a simulated Telegram receipt. It prints the receipt and confirms job cleanup. It needs no accounts and makes no network calls during execution. CI also runs it in Docker with networking disabled.
+
 ## Engineering highlights
 
 - **Lossless conversion:** requests the best available ALAC source, preserves bit depth, sample rate and channels, and compares decoded PCM hashes after conversion to FLAC.
