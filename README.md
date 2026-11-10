@@ -8,6 +8,12 @@ A focused Python project by **Omid Alighadr**: a Telegram front end around an ex
 
 [Setup](docs/SETUP.md) · [Architecture](docs/ARCHITECTURE.md) · [Bot source](apple_music/bot.py) · [Measured sample](validation/sample-report.json) · [Security](SECURITY.md)
 
+## Telegram output
+
+<img src="assets/telegram-delivery.jpg" width="440" alt="Telegram for macOS showing a Samery FLAC delivery with artwork, artist, duration, and 24-bit / 44.1 kHz metadata">
+
+A delivery from the private Samery deployment, captured in its public Telegram channel. The screenshot shows the presentation of the file and track metadata. Run the offline demo below to exercise the public code.
+
 ## Run the offline demo
 
 With Python 3.12 and FFmpeg/FFprobe installed:
@@ -60,9 +66,7 @@ docker compose up --build -d
 
 ## Output evidence
 
-![Illustration of the measured sample's Telegram presentation](assets/sample-output.svg)
-
-This is an **illustration**, not a Telegram screenshot. It represents an inspected **Null Moon — Akira Yamaoka** file: FLAC, 16-bit / 44.1 kHz, stereo, **170.307 seconds**, with embedded artwork. That saved file passed a strict full decode on **1 November 2026**. [Measurement report →](validation/sample-report.json)
+A separate **Null Moon — Akira Yamaoka** sample was inspected as FLAC, 16-bit / 44.1 kHz, stereo, **170.307 seconds**, with embedded artwork. That saved file passed a strict full decode on **1 November 2026**. [Measurement report →](validation/sample-report.json)
 
 ## Source and tests
 
