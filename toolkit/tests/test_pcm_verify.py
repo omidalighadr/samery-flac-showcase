@@ -88,6 +88,25 @@ class PCMIntegrationTests(unittest.TestCase):
         self.assertEqual(report.source_sha256, report.candidate_sha256)
         self.assertEqual(report.differences, ("sample_rate",))
 
+    def test_shorter_valid_flac_with_matching_prefix_is_not_equivalent(self):
+        source = self.wav()
+        shortened = self.convert(
+            source, "shortened.flac", "-af", "atrim=end_sample=2048", "-c:a", "flac"
+        )
+        report = pcm_verify.compare(source, shortened)
+        self.assertEqual(report.candidate.codec, "flac")
+        self.assertFalse(report.equivalent)
+        self.assertEqual(report.differences, ("decoded_pcm",))
+
+    def test_one_low_bit_change_in_32_bit_pcm_is_detected(self):
+        source = self.wav(bits=32)
+        changed = self.wav("changed.wav", bits=32, changed=True)
+        report = pcm_verify.compare(source, changed)
+        self.assertEqual(report.source.bit_depth, 32)
+        self.assertEqual(report.candidate.bit_depth, 32)
+        self.assertFalse(report.equivalent)
+        self.assertEqual(report.differences, ("decoded_pcm",))
+
     def test_channel_count_change_is_detected(self):
         report = pcm_verify.compare(self.wav(), self.wav("mono.wav", channels=1))
         self.assertIn("channels", report.differences)
