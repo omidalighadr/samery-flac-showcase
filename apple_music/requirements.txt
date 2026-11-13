@@ -1,6 +1,4 @@
-# External runtime; upstream projects retain their own licenses.
 gamdl==3.9.1
-python-telegram-bot==22.8
 httpx==0.28.1
 mutagen>=1.47,<2
 Pillow>=10,<14
