@@ -13,7 +13,7 @@ python -m pip install 'mutagen>=1.47,<2'
 python apple_music/demo.py
 ```
 
-The demo generates a tone, encodes it to ALAC, converts it to FLAC and checks that the decoded PCM matches. It uses temporary files and requires no account or network.
+The demo generates a tone, encodes it to ALAC, converts it to FLAC and checks that the decoded PCM matches. It uses temporary files and requires no account or network. See the [automated PCM verification runs](https://github.com/omidalighadr/samery-flac-showcase/actions/workflows/offline-flac.yml).
 
 ## Set up live downloads
 
