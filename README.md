@@ -16,6 +16,8 @@ Illustrative output with synthetic data.
 
 ## Quick start
 
+Download the [v0.1.0 source archive](https://github.com/omidalighadr/samery-flac-showcase/releases/tag/v0.1.0) from the release page and unpack it. For live mode, follow the [setup guide for v0.1.0](https://github.com/omidalighadr/samery-flac-showcase/blob/v0.1.0/docs/SETUP.md). For the offline demo, follow the steps below from the unpacked directory.
+
 Install Python 3.12, FFmpeg and FFprobe. Then run the offline demo from the repository root.
 
 ```sh
