@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="280" viewBox="0 0 760 280" role="img" aria-labelledby="title desc">
+<title id="title">Illustrative Samery Telegram delivery</title>
+<desc id="desc">A mock message with synthetic artwork, track metadata, and a Send to Channel button.</desc>
+<rect width="760" height="280" rx="20" fill="#101b27"/>
+<text x="32" y="40" fill="#9eb7cb" font-family="sans-serif" font-size="15">SAMERY IN TELEGRAM · ILLUSTRATIVE OUTPUT</text>
+<rect x="32" y="58" width="696" height="148" rx="15" fill="#203549"/>
+<rect x="52" y="78" width="70" height="70" rx="10" fill="#125f75"/>
+<path d="M64 115h8l6-15 9 28 8-22 6 9h8" stroke="#a5e9e3" stroke-width="3" fill="none"/>
+<g font-family="sans-serif">
+<text x="140" y="105" fill="#fff" font-size="22">Sample Artist – Test Tone.flac</text>
+<text x="140" y="134" fill="#c4d7e6" font-size="17">Sample Artist · Disc 1 · Track 1</text>
+<text x="52" y="180" fill="#c4d7e6" font-size="17">FLAC · 16-bit · 44.1 kHz</text>
+<rect x="32" y="215" width="696" height="42" rx="10" fill="#203549"/>
+<text x="380" y="242" text-anchor="middle" fill="#c6e9fb" font-size="16">Send to Channel</text>
+</g>
+</svg>
