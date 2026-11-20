@@ -1,40 +1,53 @@
 {
-  "snapshot_date": "2026-11-01",
+  "snapshot_date": "2026-11-20",
+  "scope": "Standalone Apple Music download integration; private Telegram deployment excluded",
   "files": [
-    {
-      "path": "scripts/apple_worker.py",
-      "sha256": "4319a9f5e3a56cd1b2438045979d15f87f74223372751266eec68bbecfb7472d",
-      "change": "Unmodified application source snapshot"
-    },
     {
       "path": "scripts/apple_audio.py",
       "sha256": "800d7f29a2d2cfaa4aaa00f024bacaa18810ae0d2a77df33a8a3b622e587b185",
-      "change": "Unmodified application source snapshot"
-    },
-    {
-      "path": "scripts/apple_session.py",
-      "sha256": "dee34b0176745f4ef30fb2c1e337a0c1160007b4b9ca470cb18d84800fcb2864",
-      "change": "Unmodified application source snapshot"
+      "change": "Application integration source snapshot"
     },
     {
       "path": "scripts/apple_legacy.py",
       "sha256": "5ef855677ecf8638bf685fbe53ec3bb2460f1612dea18b642f60f6112cfa72d7",
-      "change": "Unmodified application source snapshot"
+      "change": "Application integration source snapshot"
     },
     {
       "path": "scripts/apple_resume_ids.py",
       "sha256": "d8f6f8a53f2885e237fdb29d0a32b713be973b0d9db3fbe0b2dfd0dc04692640",
-      "change": "Unmodified application source snapshot"
+      "change": "Application integration source snapshot"
+    },
+    {
+      "path": "scripts/apple_session.py",
+      "sha256": "dee34b0176745f4ef30fb2c1e337a0c1160007b4b9ca470cb18d84800fcb2864",
+      "change": "Application integration source snapshot"
+    },
+    {
+      "path": "scripts/apple_worker.py",
+      "sha256": "a519e54cda24c71b98cbfd21d6f68e8a1fe6d16c26122153136fb95b70efcfbc",
+      "change": "Application integration source snapshot"
     },
     {
       "path": "scripts/music_metadata.py",
-      "sha256": "d5d2cfb95586a9a5e14f5f415b5605f4b8e5f8ed6c3f26c5718948b08e0017a6",
-      "change": "Unmodified application source snapshot"
+      "sha256": "00bae8bd9e8833f0aab4bd32e2ed5325cbe96a852810f4b47c5380db8a1e60a0",
+      "change": "Application integration source snapshot"
+    },
+    {
+      "path": "scripts/apple_stream.py",
+      "sha256": "03786616cab4e4cde2166c33b90e5e6e29756c828838cf7a71513b2c48d32e26",
+      "change": "Application integration source snapshot"
+    },
+    {
+      "path": "scripts/apple_collection_catalog.py",
+      "sha256": "4883f7ca83ad11b4a6184219c314d5a0949e59610ca8f2b2d71765139a6d0de3",
+      "change": "Application integration source snapshot"
     }
   ],
   "notes": [
-    "Only original application modules listed here were copied.",
-    "No installed third-party package, binary, account session or private configuration was copied.",
-    "services/ordered_albums.py contains the pure ordering helpers; the private bot command is excluded."
+    "Only explicitly selected integration modules were copied.",
+    "Credentials, cookie contents, account sessions, deployment URLs, databases, logs, media, and Telegram configuration are excluded.",
+    "Catalog pagination, fragment retry/completeness checks and duration validation are included.",
+    "The private Telegram application, channel publishing, album cards and Telegram music ZIP workflow are not part of this CLI.",
+    "Third-party packages and service binaries are installed separately; no installed package or private dependency wheel is bundled."
   ]
 }

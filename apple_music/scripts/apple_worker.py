@@ -12,6 +12,13 @@ import shutil
 import sys
 
 
+def error_details(error):
+    import traceback
+    frames = traceback.extract_tb(error.__traceback__)
+    last = frames[-1] if frames else None
+    return {"error_type": type(error).__name__, "error_location": (Path(last.filename).name + ":" + str(last.lineno)) if last else "unknown"}
+
+
 def emit(event: str, **values) -> None:
     os.write(1, (json.dumps(dict(event=event, **values)) + "\n").encode())
 
@@ -49,6 +56,10 @@ async def run(args) -> None:
         AppleMusicUploadedVideoDownloader,
     )
 
+    import gamdl.downloader.base as transport_base
+    from apple_stream import download_stream_process, verify_complete, failure_code
+    transport_base._download_ytdlp_process = download_stream_process
+
     api = None
     base = None
     wrapper = None
@@ -60,6 +71,10 @@ async def run(args) -> None:
         api.client.timeout = httpx.Timeout(45, connect=30)
         if not api.active_subscription:
             emit("error", code="subscription")
+            return
+        if args.catalog:
+            from apple_collection_catalog import collect
+            emit("collection", **(await collect(api, args.url)))
             return
         if args.check:
             emit("ready")
@@ -100,19 +115,15 @@ async def run(args) -> None:
             uploaded_video=AppleMusicUploadedVideoDownloader(base=download_base),
             no_synced_lyrics=not args.lyrics,
         )
-        from apple_resume_ids import load_completed, track_id
-        completed_ids = load_completed(output, getattr(args, "completed", None))
-        resumed = 0
         count = 0
         failed = 0
         args.stage = "download"
         async for item in downloader.get_download_item_from_url(args.url):
-            if item.media.partial:
+            if getattr(item.media, "error", None):
+                emit("track_error", code=failure_code(item.media.error), **error_details(item.media.error))
+                failed += 1
                 continue
-            media_id = track_id(item)
-            if media_id in completed_ids:
-                resumed += 1
-                emit("resume", id=media_id)
+            if item.media.partial:
                 continue
             if count >= args.limit:
                 emit("limit", count=args.limit)
@@ -148,6 +159,8 @@ async def run(args) -> None:
                     original.unlink()
                     if synced:
                         await asyncio.to_thread(embed_lyrics, path, plain, synced)
+                if args.codec == "flac":
+                    await asyncio.to_thread(verify_complete, path, item.media.media_metadata, args.ffmpeg, args.ffprobe)
                 lyrics = Path(item.synced_lyrics_path) if item.synced_lyrics_path else None
                 emit(
                     "track",
@@ -178,8 +191,8 @@ async def run(args) -> None:
                     lyrics.unlink(missing_ok=True)
             except Exception as error:
                 failed += 1
-                emit("track_error", code=type(error).__name__)
-        emit("done", count=count, failed=failed, resumed=resumed)
+                emit("track_error", code=failure_code(error), **error_details(error))
+        emit("done", count=count, failed=failed)
     finally:
         if args.wrapper_backend == "legacy-local" and wrapper is not None:
             await wrapper.aclose()
@@ -202,8 +215,8 @@ def main() -> None:
     parser.add_argument("--ffprobe", default=shutil.which("ffprobe") or "ffprobe")
     parser.add_argument("--lyrics", action="store_true")
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--catalog", action="store_true")
     parser.add_argument("--limit", type=int, default=50)
-    parser.add_argument("--completed", default="")
     parser.add_argument("--wrapper", default="")
     parser.add_argument("--wrapper-backend", choices=("v2", "legacy-local"), default="v2")
     parser.add_argument("--decrypt-host", default="127.0.0.1")

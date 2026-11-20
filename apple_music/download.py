@@ -9,6 +9,9 @@ import sys
 import tempfile
 from urllib.parse import parse_qs, urlsplit, urlunsplit
 
+from scripts.music_metadata import filename
+from services import ordered_albums
+
 
 def catalog_url(value):
     parts = urlsplit(value)
@@ -22,15 +25,18 @@ def catalog_url(value):
     return urlunsplit(("https", "music.apple.com", parts.path, f"i={song}" if song else "", ""))
 
 
-def save_track(event, work, destination):
+def save_track(event, work, destination, *, ordered=False):
     raw = event.get("path")
     if not isinstance(raw, str) or not raw:
         raise ValueError("Worker produced an invalid output path.")
     source = Path(raw).resolve(strict=True)
-    if not source.is_relative_to(work) or not source.is_file() or source.suffix.lower() != ".flac":
+    if not source.is_relative_to(Path(work).resolve(strict=True)) or not source.is_file() or source.suffix.lower() != ".flac":
         raise ValueError("Worker produced an invalid output path.")
+    with ordered_albums.naming(ordered):
+        public_name = ordered_albums.prefix(event) + filename(source, event)
+    stem = Path(public_name).stem
     for index in range(1, 1001):
-        name = source.name if index == 1 else f"{source.stem} ({index}){source.suffix}"
+        name = public_name if index == 1 else f"{stem} ({index}){source.suffix}"
         target = destination / name
         try:
             os.link(source, target)
@@ -40,7 +46,7 @@ def save_track(event, work, destination):
     raise ValueError("Too many files have the same name.")
 
 
-def run(worker, url, destination, limit):
+def run(worker, url, destination, limit, *, lyrics=False):
     destination = destination.resolve()
     work = Path(tempfile.mkdtemp(prefix=".samery-", dir=destination)).resolve()
     confirmed = 0
@@ -48,6 +54,9 @@ def run(worker, url, destination, limit):
     error = False
     cmd = [sys.executable, "-B", str(worker), "--url", url, "--output", str(work),
            "--limit", str(limit), "--codec", "flac"]
+    if lyrics:
+        cmd.append("--lyrics")
+    ordered = "/album/" in urlsplit(url).path and not parse_qs(urlsplit(url).query).get("i")
     cmd.extend(["--cookies", os.environ["APPLE_MUSIC_COOKIES"],
                 "--wrapper", os.environ["APPLE_MUSIC_WRAPPER_URL"]])
     for option, env in (
@@ -69,7 +78,7 @@ def run(worker, url, destination, limit):
                     raise ValueError("Invalid worker response.")
                 kind = event.get("event")
                 if kind == "track":
-                    target = save_track(event, work, destination)
+                    target = save_track(event, work, destination, ordered=ordered)
                     process.stdin.write("saved\n")
                     process.stdin.flush()
                     confirmed += 1
@@ -100,6 +109,7 @@ def main(argv=None):
     parser.add_argument("url")
     parser.add_argument("--output", type=Path, default=Path("downloads"))
     parser.add_argument("--limit", type=int, default=50)
+    parser.add_argument("--lyrics", action="store_true", help="request available synchronized lyrics")
     args = parser.parse_args(argv)
     try:
         url = catalog_url(args.url)
@@ -109,7 +119,7 @@ def main(argv=None):
             raise ValueError("Set APPLE_MUSIC_COOKIES and APPLE_MUSIC_WRAPPER_URL first.")
         output = args.output.resolve()
         output.mkdir(parents=True, exist_ok=True)
-        return run(Path(__file__).with_name("scripts") / "apple_worker.py", url, output, args.limit)
+        return run(Path(__file__).with_name("scripts") / "apple_worker.py", url, output, args.limit, lyrics=args.lyrics)
     except ValueError as error:
         print(error, file=sys.stderr)
     except (OSError, KeyError):
@@ -119,3 +129,4 @@ def main(argv=None):
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

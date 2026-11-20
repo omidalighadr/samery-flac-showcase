@@ -44,6 +44,19 @@ class DownloadTests(unittest.TestCase):
             self.assertEqual((root / "Track (2).flac").read_bytes(), b"fixture")
             self.assertFalse(list(root.glob(".samery-*")))
 
+    def test_album_filenames_use_tags_and_disc_track_numbers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            work = root / "work"
+            work.mkdir()
+            source = work / "0123456789abcdef-original.flac"
+            source.write_bytes(b"fixture")
+            event = dict(path=str(source), title="Generated / Track", artist="Generated: Artist",
+                         disc=2, track=3)
+            saved = download.save_track(event, work, root, ordered=True)
+            self.assertEqual(saved.name, "02-03 Generated Artist - Generated Track.flac")
+            self.assertEqual(saved.read_bytes(), b"fixture")
+
     def test_track_outside_working_directory_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -57,3 +70,4 @@ class DownloadTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

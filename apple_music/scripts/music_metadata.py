@@ -57,6 +57,7 @@ def metadata(path=None, fallback=None):
         "title": ("title", "TIT2", "\xa9nam"),
         "artist": ("artist", "TPE1", "\xa9ART"),
         "album": ("album", "TALB", "\xa9alb"),
+        "album_artist": ("albumartist", "TPE2", "aART"),
         "date": ("date", "TDRC", "\xa9day"),
         "id": ("apple_music_id", "itunes_track_id", "cnID"),
     }.items():
@@ -162,8 +163,6 @@ def filename(path, data=None):
     name = f"{artist} - {title}" if artist else title
     name = re.sub(r'[\x00-\x1f\x7f/\\:*?"<>|]', " ", name)
     name = re.sub(r"\s+", " ", name).strip(" .") or "Music"
-    from services.ordered_albums import prefix
-    name = prefix(info) + name
     return name[:180].rstrip() + path.suffix.lower()
 
 
