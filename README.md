@@ -86,6 +86,18 @@ sessions, private deployment configuration, databases, logs or downloaded media.
 The [sample environment file](.env.example) contains placeholders only. Keep
 actual values local and out of Git.
 
+## When Apple Music refuses one track
+
+If another track plays but a particular release fails, open the exact track
+link in Apple Music with the same account used by the CLI. Try playing the
+full song; a preview alone does not confirm access.
+
+If Apple specifically reports an explicit-content restriction, review the
+allowed rating for music in the account's
+[Parental Controls settings](https://support.apple.com/guide/music-web/apdmfc091c0a/web).
+After changing the setting, retry the same track. A generic download error
+alone does not establish that an explicit-content restriction is involved.
+
 ## Validation
 
 ```sh
