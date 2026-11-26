@@ -14,6 +14,8 @@ from urllib.parse import urlsplit
 
 HEADER = struct.Struct(">4sHHII")
 MAX_FRAME = 32 * 1024 * 1024
+PLAYBACK_ATTEMPTS = 3
+PLAYBACK_RETRY_DELAY = 0.75
 
 
 def parse_batch(body: bytes):
@@ -70,29 +72,36 @@ class LegacyWrapper:
         adam = str(media_id).encode("ascii")
         if not adam.isdigit() or len(adam) > 255:
             raise ValueError("Invalid media identifier")
-        reader, writer = await asyncio.wait_for(
-            asyncio.open_connection("127.0.0.1", self.m3u8_port), 10
-        )
-        try:
-            writer.write(bytes([len(adam)]) + adam)
-            await writer.drain()
-            raw = await asyncio.wait_for(reader.readline(), 90)
-            url = raw.strip(b"\x00\r\n").decode("utf-8")
-            parts = urlsplit(url)
-            if (
-                parts.scheme != "https"
-                or not parts.hostname
-                or not (
-                    parts.hostname.endswith(".itunes.apple.com")
-                    or parts.hostname.endswith(".music.apple.com")
-                    or parts.hostname.endswith(".mzstatic.com")
-                )
-            ):
-                raise ValueError("Wrapper did not return an Apple playlist")
-        finally:
-            writer.close()
-            with suppress(OSError):
-                await writer.wait_closed()
+        url = None
+        for attempt in range(PLAYBACK_ATTEMPTS):
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection("127.0.0.1", self.m3u8_port), 10
+            )
+            try:
+                writer.write(bytes([len(adam)]) + adam)
+                await writer.drain()
+                raw = await asyncio.wait_for(reader.readline(), 90)
+                candidate = raw.strip(b"\x00\r\n").decode("utf-8")
+                parts = urlsplit(candidate)
+                if (
+                    parts.scheme == "https"
+                    and parts.hostname
+                    and (
+                        parts.hostname.endswith(".itunes.apple.com")
+                        or parts.hostname.endswith(".music.apple.com")
+                        or parts.hostname.endswith(".mzstatic.com")
+                    )
+                ):
+                    url = candidate
+                    break
+            finally:
+                writer.close()
+                with suppress(OSError):
+                    await writer.wait_closed()
+            if attempt + 1 < PLAYBACK_ATTEMPTS:
+                await asyncio.sleep(PLAYBACK_RETRY_DELAY * (attempt + 1))
+        if url is None:
+            raise ValueError("Wrapper did not return an Apple playlist")
         playback = await self.api.get_webplayback(media_id, False)
         playback["songList"][0]["hls-playlist-url"] = url
         return playback

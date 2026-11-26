@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-27
+
+- Retry an empty or rejected playlist URL from the legacy local service, with
+  at most three attempts. Apple Music account checks still apply.
+- Cover retry recovery and exhaustion with simulated responses in the offline
+  suite.
+
 ## 2026-11-20
 
 The public download integration was refreshed from the application source.

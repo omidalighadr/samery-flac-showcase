@@ -1,5 +1,5 @@
 {
-  "snapshot_date": "2026-11-20",
+  "snapshot_date": "2026-11-27",
   "scope": "Standalone Apple Music download integration; private Telegram deployment excluded",
   "files": [
     {
@@ -9,8 +9,8 @@
     },
     {
       "path": "scripts/apple_legacy.py",
-      "sha256": "5ef855677ecf8638bf685fbe53ec3bb2460f1612dea18b642f60f6112cfa72d7",
-      "change": "Application integration source snapshot"
+      "sha256": "e81453fa49733828d9d7bc4b0e6f0f3b0f179d300538ec404fa6d307f71aa086",
+      "change": "Retry invalid responses from the local playlist service"
     },
     {
       "path": "scripts/apple_resume_ids.py",
