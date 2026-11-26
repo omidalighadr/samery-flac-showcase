@@ -58,7 +58,7 @@ python apple_music/download.py 'https://music.apple.com/us/playlist/ennio-morric
 | --- | --- |
 | The CLI asks for cookie and service settings | Open a new terminal, activate the virtual environment and load your edited `.env`. Verify the private session file exists and the service URL is set. |
 | The compatible service is unavailable | Check that the service is running and reachable from the machine running the CLI. Confirm the configured interface matches the service. |
-| A download ends with `Download incomplete` | Check the saved-file count and the reported `.samery-*` directory. Completed files already saved in the output folder are preserved. |
+| A download ends with `Download incomplete` | Read any hint printed above the summary, then check the saved-file count and the reported `.samery-*` directory. Completed files already saved in the output folder are preserved. |
 | A track fails duration or full-decode checks | Retry after checking your network and compatible service. The worker does not emit that output as a successfully verified track. |
 
 ## Verify without an account

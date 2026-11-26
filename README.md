@@ -106,7 +106,7 @@ python apple_music/demo.py
 python -m pip check
 ```
 
-The 27 tests cover CLI saving, collision handling, filename numbering, catalog
+The tests cover CLI saving, error reporting, collision handling, filename numbering, catalog
 pagination, session retries, redirect handling, transport retry budgets, duration
 checks and real lossless conversion. Generated 16/24-bit audio fixtures verify
 PCM, tags and original artwork at 44.1, 96 and 192 kHz. Other service requests are

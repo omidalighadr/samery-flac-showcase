@@ -57,6 +57,23 @@ class DownloadTests(unittest.TestCase):
             self.assertEqual(saved.name, "02-03 Generated Artist - Generated Track.flac")
             self.assertEqual(saved.read_bytes(), b"fixture")
 
+    def test_partial_download_reports_known_error_once_without_exposing_worker_text(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            worker = root / "worker.py"
+            worker.write_text(WORKER + """
+for code in ('wrapper_unavailable', 'wrapper_unavailable', 'sensitive-unknown-code', {}):
+    print(json.dumps(dict(event='track_error', code=code, detail='sensitive-detail')))
+""")
+            stderr = io.StringIO()
+            with patch.dict(os.environ, APPLE_MUSIC_COOKIES="test", APPLE_MUSIC_WRAPPER_URL="test"):
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
+                    self.assertEqual(download.run(worker, URL, root, 2), 1)
+            self.assertEqual((root / "Track.flac").read_bytes(), b"fixture")
+            self.assertEqual(stderr.getvalue().count("wrapper_unavailable:"), 1)
+            self.assertIn("Saved 1 file(s)", stderr.getvalue())
+            self.assertNotIn("sensitive", stderr.getvalue())
+
     def test_track_outside_working_directory_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

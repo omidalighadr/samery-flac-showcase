@@ -13,6 +13,18 @@ from scripts.music_metadata import filename
 from services import ordered_albums
 
 
+ERROR_HINTS = {
+    "account_rejected": "Apple rejected access. Check the Apple Music session and whether this track plays with the same account.",
+    "subscription": "The Apple Music session has no active subscription.",
+    "wrapper_unavailable": "Check that the configured playback service is running and that its backend matches the CLI settings.",
+    "network": "Check your connection to Apple Music and retry.",
+    "stream_network": "The audio stream could not be retrieved. Check your network and retry.",
+    "apple_unavailable": "Apple Music is temporarily unavailable or rate limiting requests. Try again later.",
+    "track_duration_mismatch": "The audio duration did not match the catalog. Retry the download.",
+    "audio_decode_failed": "The downloaded audio could not be decoded. Retry the download.",
+}
+
+
 def catalog_url(value):
     parts = urlsplit(value)
     if parts.scheme != "https" or parts.netloc.lower() != "music.apple.com" or not re.fullmatch(
@@ -52,6 +64,7 @@ def run(worker, url, destination, limit, *, lyrics=False):
     confirmed = 0
     done = None
     error = False
+    reported_codes = set()
     cmd = [sys.executable, "-B", str(worker), "--url", url, "--output", str(work),
            "--limit", str(limit), "--codec", "flac"]
     if lyrics:
@@ -87,6 +100,10 @@ def run(worker, url, destination, limit, *, lyrics=False):
                     done = event
                 elif kind in ("error", "track_error"):
                     error = True
+                    code = event.get("code")
+                    if isinstance(code, str) and code in ERROR_HINTS and code not in reported_codes:
+                        print(f"{code}: {ERROR_HINTS[code]}", file=sys.stderr)
+                        reported_codes.add(code)
             returncode = process.wait()
         except BaseException:
             if process.poll() is None:
