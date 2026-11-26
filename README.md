@@ -26,15 +26,16 @@ not prove source authenticity or rule out an earlier lossy conversion. Duration
 comparison allows a difference of up to the larger of 2 seconds or 1%; missing
 catalog duration cannot establish completeness against the original recording.
 
-## Get the latest source
+## Get Samery FLAC Showcase
+
+For a numbered version, start with the [v0.2.0 release](https://github.com/omidalighadr/samery-flac-showcase/releases/tag/v0.2.0) and select **Source code (zip)**. Follow the [setup guide](docs/SETUP.md) or try the offline demo below.
+
+To work with the latest source on `main`:
 
 ```sh
 git clone https://github.com/omidalighadr/samery-flac-showcase.git
 cd samery-flac-showcase
 ```
-
-Or download the [current main-branch ZIP](https://github.com/omidalighadr/samery-flac-showcase/archive/refs/heads/main.zip).
-The older `v0.1.0` release remains a historical snapshot.
 
 ## Offline demo
 
