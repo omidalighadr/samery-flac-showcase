@@ -109,7 +109,10 @@ def run(worker, url, destination, limit, *, lyrics=False):
             if process.poll() is None:
                 process.kill()
             raise
-    if returncode or error or done is None or not confirmed or done.get("failed"):
+    summary = done or {}
+    count, failed = summary.get("count"), summary.get("failed")
+    complete = type(count) is int and count == confirmed and type(failed) is int and failed == 0
+    if returncode or error or not confirmed or not complete:
         print(f"Download incomplete. Saved {confirmed} file(s). Check {work.name} for unfinished files.",
               file=sys.stderr)
         return 1

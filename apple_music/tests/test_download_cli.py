@@ -21,7 +21,7 @@ path.write_bytes(b'fixture')
 print(json.dumps(dict(event='track', path=str(path))), flush=True)
 if sys.stdin.readline().strip() == 'saved':
     path.unlink()
-    print(json.dumps(dict(event='done', failed=0)), flush=True)
+    print(json.dumps(dict(event='done', count=1, failed=0)), flush=True)
 """
 
 
@@ -56,6 +56,27 @@ class DownloadTests(unittest.TestCase):
             saved = download.save_track(event, work, root, ordered=True)
             self.assertEqual(saved.name, "02-03 Generated Artist - Generated Track.flac")
             self.assertEqual(saved.read_bytes(), b"fixture")
+
+    def test_inconsistent_completion_summary_preserves_saved_track(self):
+        summaries = (
+            "count=2, failed=0",
+            "failed=0",
+            "count=True, failed=0",
+            "count=1",
+            "count=1, failed=False",
+        )
+        for summary in summaries:
+            with self.subTest(summary=summary), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                worker = root / "worker.py"
+                worker.write_text(WORKER.replace("count=1, failed=0", summary))
+                stderr = io.StringIO()
+                with patch.dict(os.environ, APPLE_MUSIC_COOKIES="test", APPLE_MUSIC_WRAPPER_URL="test"):
+                    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
+                        self.assertEqual(download.run(worker, URL, root, 2), 1)
+                self.assertEqual((root / "Track.flac").read_bytes(), b"fixture")
+                self.assertIn("Download incomplete. Saved 1 file(s).", stderr.getvalue())
+                self.assertTrue(list(root.glob(".samery-*")))
 
     def test_partial_download_reports_known_error_once_without_exposing_worker_text(self):
         with tempfile.TemporaryDirectory() as directory:
